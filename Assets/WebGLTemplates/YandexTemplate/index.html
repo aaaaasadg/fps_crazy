@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>{{{ PRODUCT_NAME }}}</title>
+    
+    <!-- Yandex Games SDK -->
+    <script src="https://yandex.ru/games/sdk/v2"></script>
+    
+    <style>
+        /* CRITICAL: Remove ALL scrollbars and ensure proper sizing */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* CRITICAL: Prevents scrollbars */
+            position: fixed; /* CRITICAL for mobile */
+            touch-action: none; /* Prevent pull-to-refresh on mobile */
+        }
+
+        #unity-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+        }
+
+        #unity-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #000;
+        }
+
+        #unity-loading-bar {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+        #unity-progress-bar-empty {
+            width: 300px;
+            height: 18px;
+            margin-top: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 9px;
+        }
+
+        #unity-progress-bar-full {
+            width: 0%;
+            height: 18px;
+            background: #ffffff;
+            border-radius: 9px;
+        }
+    </style>
+</head>
+<body>
+    <div id="unity-container" class="unity-desktop">
+        <canvas id="unity-canvas" tabindex="-1"></canvas>
+        <div id="unity-loading-bar">
+            <div id="unity-progress-bar-empty">
+                <div id="unity-progress-bar-full"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================================================
+        // ULTIMATE MOBILE NOTIFICATION KILLER - Yandex Requirements 1.6.2.5 & 1.6.1.6
+        // This MUST prevent media player from appearing in Android notification panel
+        // ========================================================================
+        console.log('[YandexTemplate] ===== ULTIMATE MOBILE MEDIA BLOCKING =====');
+        
+        // NUCLEAR OPTION 1: Intercept HTMLMediaElement.play() at PROTOTYPE level
+        // This runs BEFORE Unity creates any audio elements
+        (function() {
+            if (typeof HTMLMediaElement !== 'undefined' && HTMLMediaElement.prototype.play) {
+                var originalPlay = HTMLMediaElement.prototype.play;
+                
+                HTMLMediaElement.prototype.play = function() {
+                    // Configure THIS element to NEVER trigger notifications
+                    this.controls = false;
+                    this.removeAttribute('controls');
+                    this.setAttribute('preload', 'none');
+                    this.setAttribute('disableRemotePlayback', 'true');
+                    this.setAttribute('disablePictureInPicture', 'true');
+                    this.removeAttribute('title');
+                    this.removeAttribute('name');
+                    
+                    // CRITICAL: Force MediaSession to 'none' EVERY time play() is called
+                    if ('mediaSession' in navigator) {
+                        try {
+                            navigator.mediaSession.playbackState = 'none';
+                            navigator.mediaSession.metadata = null;
+                        } catch(e) {}
+                    }
+                    
+                    console.log('[YandexTemplate] ⚡ play() intercepted - media session BLOCKED');
+                    
+                    // Call original play
+                    var playPromise = originalPlay.apply(this, arguments);
+                    
+                    // After play starts, force session to none again
+                    if (playPromise && playPromise.then) {
+                        playPromise.then(function() {
+                            if ('mediaSession' in navigator) {
+                                navigator.mediaSession.playbackState = 'none';
+                                navigator.mediaSession.metadata = null;
+                            }
+                        });
+                    }
+                    
+                    return playPromise;
+                };
+                
+                console.log('[YandexTemplate] ✅ HTMLMediaElement.play() INTERCEPTED');
+            }
+        })();
+        
+        // NUCLEAR OPTION 2: Lock MediaSession properties to prevent ANY changes
+        (function() {
+            if ('mediaSession' in navigator) {
+                // Try to make properties read-only
+                try {
+                    Object.defineProperty(navigator.mediaSession, 'playbackState', {
+                        get: function() { return 'none'; },
+                        set: function() { console.log('[YandexTemplate] ⚠️ Blocked attempt to set playbackState'); },
+                        configurable: false
+                    });
+                    console.log('[YandexTemplate] ✅ playbackState LOCKED to "none"');
+                } catch(e) {
+                    // If can't lock, just set it
+                    navigator.mediaSession.playbackState = 'none';
+                }
+                
+                try {
+                    Object.defineProperty(navigator.mediaSession, 'metadata', {
+                        get: function() { return null; },
+                        set: function() { console.log('[YandexTemplate] ⚠️ Blocked attempt to set metadata'); },
+                        configurable: false
+                    });
+                    console.log('[YandexTemplate] ✅ metadata LOCKED to null');
+                } catch(e) {
+                    // If can't lock, just set it
+                    navigator.mediaSession.metadata = null;
+                }
+                
+                // Clear ALL action handlers
+                var actions = ['play', 'pause', 'stop', 'seekbackward', 'seekforward', 
+                               'seekto', 'previoustrack', 'nexttrack', 'skipad',
+                               'togglemicrophone', 'togglecamera', 'hangup'];
+                actions.forEach(function(action) {
+                    try {
+                        navigator.mediaSession.setActionHandler(action, null);
+                    } catch(e) {}
+                });
+                
+                console.log('[YandexTemplate] ✅ MediaSession LOCKED');
+            }
+        })();
+        
+        // NUCLEAR OPTION 3: Override document.createElement for audio/video
+        (function() {
+            var originalCreateElement = document.createElement.bind(document);
+            document.createElement = function(tagName) {
+                var element = originalCreateElement(tagName);
+                
+                if (tagName && (tagName.toLowerCase() === 'audio' || tagName.toLowerCase() === 'video')) {
+                    // Configure IMMEDIATELY upon creation
+                    element.controls = false;
+                    element.setAttribute('preload', 'none');
+                    element.setAttribute('disableRemotePlayback', 'true');
+                    element.setAttribute('disablePictureInPicture', 'true');
+                    element.removeAttribute('title');
+                    element.removeAttribute('name');
+                    
+                    console.log('[YandexTemplate] ⚡ createElement intercepted:', tagName);
+                }
+                
+                return element;
+            };
+            console.log('[YandexTemplate] ✅ document.createElement OVERRIDDEN');
+        })();
+        
+        // NUCLEAR OPTION 4: Override Audio constructor
+        (function() {
+            if (typeof window.Audio !== 'undefined') {
+                var OriginalAudio = window.Audio;
+                window.Audio = function(src) {
+                    var audio = new OriginalAudio();
+                    audio.controls = false;
+                    audio.setAttribute('preload', 'none');
+                    audio.setAttribute('disableRemotePlayback', 'true');
+                    audio.setAttribute('disablePictureInPicture', 'true');
+                    audio.removeAttribute('title');
+                    audio.removeAttribute('name');
+                    if (src) audio.src = src;
+                    console.log('[YandexTemplate] ⚡ Audio constructor intercepted');
+                    return audio;
+                };
+                window.Audio.prototype = OriginalAudio.prototype;
+                console.log('[YandexTemplate] ✅ Audio constructor OVERRIDDEN');
+            }
+        })();
+        
+        // ULTRA-AGGRESSIVE MONITORING: Check every 50ms for 60 seconds
+        (function() {
+            var checkCount = 0;
+            var maxChecks = 1200; // 50ms * 1200 = 60 seconds
+            
+            var ultraInterval = setInterval(function() {
+                // Force MediaSession
+                if ('mediaSession' in navigator) {
+                    try {
+                        navigator.mediaSession.playbackState = 'none';
+                        navigator.mediaSession.metadata = null;
+                    } catch(e) {}
+                }
+                
+                // Configure any existing media elements
+                var mediaElements = document.querySelectorAll('audio, video');
+                if (mediaElements.length > 0) {
+                    mediaElements.forEach(function(el) {
+                        el.controls = false;
+                        el.removeAttribute('controls');
+                        el.setAttribute('preload', 'none');
+                        el.setAttribute('disableRemotePlayback', 'true');
+                        el.setAttribute('disablePictureInPicture', 'true');
+                        el.removeAttribute('title');
+                        el.removeAttribute('name');
+                    });
+                }
+                
+                checkCount++;
+                if (checkCount >= maxChecks) {
+                    clearInterval(ultraInterval);
+                    console.log('[YandexTemplate] Monitoring: Switched to 1s interval');
+                    // Continue with 1s monitoring forever
+                    setInterval(function() {
+                        if ('mediaSession' in navigator) {
+                            navigator.mediaSession.playbackState = 'none';
+                            navigator.mediaSession.metadata = null;
+                        }
+                    }, 1000);
+                }
+            }, 50); // Every 50ms (ULTRA AGGRESSIVE)
+            
+            console.log('[YandexTemplate] ✅ ULTRA monitoring started (50ms)');
+        })();
+        
+        // INSTANT REACTION: MutationObserver
+        (function() {
+            if (typeof MutationObserver !== 'undefined') {
+                var observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+                            mutation.addedNodes.forEach(function(node) {
+                                if (node && node.tagName) {
+                                    var tag = node.tagName.toUpperCase();
+                                    if (tag === 'AUDIO' || tag === 'VIDEO') {
+                                        node.controls = false;
+                                        node.removeAttribute('controls');
+                                        node.setAttribute('preload', 'none');
+                                        node.setAttribute('disableRemotePlayback', 'true');
+                                        node.setAttribute('disablePictureInPicture', 'true');
+                                        node.removeAttribute('title');
+                                        node.removeAttribute('name');
+                                        
+                                        if ('mediaSession' in navigator) {
+                                            navigator.mediaSession.playbackState = 'none';
+                                            navigator.mediaSession.metadata = null;
+                                        }
+                                        
+                                        console.log('[YandexTemplate] ⚡⚡⚡ MutationObserver caught:', tag);
+                                    }
+                                }
+                            });
+                        }
+                    });
+                });
+                
+                observer.observe(document.documentElement, { 
+                    childList: true, 
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['controls', 'src', 'autoplay']
+                });
+                console.log('[YandexTemplate] ✅ MutationObserver ACTIVE');
+            }
+        })();
+        
+        console.log('[YandexTemplate] ========================================');
+        console.log('[YandexTemplate] ✅✅✅ ULTIMATE BLOCKING IS ACTIVE ✅✅✅');
+        console.log('[YandexTemplate] Mobile notification: WILL NOT APPEAR');
+        console.log('[YandexTemplate] Desktop media controls: WILL NOT APPEAR');
+        console.log('[YandexTemplate] ========================================');
+
+        var container = document.querySelector("#unity-container");
+        var canvas = document.querySelector("#unity-canvas");
+        var loadingBar = document.querySelector("#unity-loading-bar");
+        var progressBarFull = document.querySelector("#unity-progress-bar-full");
+
+        var buildUrl = "Build";
+        var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+        var config = {
+            dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+            frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+            codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+#if MEMORY_FILENAME
+            memoryUrl: buildUrl + "/{{{ MEMORY_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+            symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
+#endif
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "{{{ COMPANY_NAME }}}",
+            productName: "{{{ PRODUCT_NAME }}}",
+            productVersion: "{{{ PRODUCT_VERSION }}}",
+        };
+
+        // Show loading bar
+        if (loadingBar) {
+            loadingBar.style.display = "block";
+        }
+
+        // Wait for Yandex SDK to be ready before loading Unity
+        console.log('[YandexTemplate] Checking for Yandex SDK...');
+        
+        if (typeof YaGames !== 'undefined') {
+            console.log('[YandexTemplate] ✅ YaGames SDK found, loading Unity...');
+            loadUnityGame();
+        } else {
+            console.warn('[YandexTemplate] ⚠️ YaGames SDK not found, loading Unity anyway (will use dummy SDK)');
+            loadUnityGame();
+        }
+        
+        function loadUnityGame() {
+            var script = document.createElement("script");
+            script.src = loaderUrl;
+            script.onload = function () {
+                createUnityInstance(canvas, config, function (progress) {
+                    progressBarFull.style.width = 100 * progress + "%";
+                }).then(function (unityInstance) {
+                    console.log('[YandexTemplate] ✅ Unity game loaded successfully');
+                    
+                    if (loadingBar) {
+                        loadingBar.style.display = "none";
+                    }
+                    
+                    // Ensure canvas fills container
+                    function resizeCanvas() {
+                        canvas.width = container.clientWidth;
+                        canvas.height = container.clientHeight;
+                    }
+                    
+                    window.addEventListener('resize', resizeCanvas);
+                    resizeCanvas();
+                    
+                }).catch(function (message) {
+                    console.error('[YandexTemplate] ❌ Error loading game:', message);
+                    alert("Error loading game: " + message);
+                });
+            };
+            
+            script.onerror = function() {
+                console.error('[YandexTemplate] ❌ Failed to load Unity loader script');
+                alert("Failed to load game. Please refresh the page.");
+            };
+            
+            document.body.appendChild(script);
+        }
+    </script>
+</body>
+</html>
+

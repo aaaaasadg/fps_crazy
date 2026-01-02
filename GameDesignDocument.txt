@@ -1,0 +1,582 @@
+GAME DESIGN DOCUMENT — v1 (WebGL / Yandex Horde Shooter)
+Working Title: Fantasy Arena: Horde Survival
+Platform: Unity Web (Yandex Games)
+Genre: First-person arena horde shooter with roguelite upgrades
+Theme: Bright stylized fantasy (goblins, orcs, golems), vivid colors, readable silhouettes
+
+1. Core Vision
+A fast-paced, lightweight FPS horde survival game where the player chooses a weapon, survives waves of fantasy creatures, collects XP and gold, upgrades stats, finds better weapons, and dies gloriously after an increasingly intense battle.
+Target session length: 8–12 minutes.
+The focus is on:
+
+satisfying gunplay
+
+
+constant power growth
+
+
+easy-to-understand upgrades
+
+
+high clarity for Yandex teenage audience
+
+Graphics are low-poly, bright, stylized, mostly unlit.
+
+2. Core Gameplay Loop
+1.
+Main Menu → Play
+2.
+3.
+Weapon Select Screen
+4.
+o
+Choose one of 4 weapons (starting rarity = Common)
+o
+5.
+Run Start
+6.
+o
+Player spawns in arena
+o
+7.
+Continuous Combat
+8.
+o
+Move & shoot
+o
+o
+Enemies chase and deal touch damage
+o
+9.
+Rewards
+10.
+o
+Every enemy drops XP + Gold
+o
+o
+1% chance: Stat Item
+o
+o
+0.5% chance: Random weapon (any type, any rarity)
+o
+11.
+Level Up
+12.
+o
+Choose 1 upgrade out of 3 random
+o
+o
+Each upgrade buffs one stat
+o
+o
+Upgrade appears in Common/Rare/Epic/Legendary rarity
+o
+13.
+Scaling
+14.
+o
+Enemy HP and spawn rate increase every minute
+o
+o
+Enemy speed does not change
+o
+15.
+Drops & Progression
+16.
+o
+Stat Items provide small bonus to a random stat
+o
+o
+Elites / mini-bosses drop weapons (higher rarity candidate)
+o
+o
+Gold used to open chests (giving stat items or free upgrades)
+o
+17.
+Death
+18.
+o
+Death screen with: time survived, kills, gold, list of upgrades taken
+o
+o
+Buttons: Replay, Main Menu
+o
+
+3. Player
+3.1 Player Stats
+
+Max HP
+
+
+HP Regen
+
+
+Damage Reduction (%)
+
+
+Movement Speed
+
+
+Pickup Radius
+
+
+XP Gain %
+
+
+Gold Gain %
+
+3.2 Damage
+Enemies deal touch damage.
+Touch = damage every 0.5 seconds per enemy.
+3.3 Movement & Camera
+Simple FPS movement, mouse look.
+Low camera sway for readability.
+
+4. Weapons
+There are 4 weapon types.
+Each weapon can scale all stats, including AoE, Pierce, Ricochet.
+However, each weapon has a “theme” by default, meaning one of these stats starts higher.
+4.1 Weapon Types & Identity
+Assault Rifle (AR)
+
+Identity: Ricochet-friendly
+
+
+High fire rate
+
+
+Moderate damage
+
+
+Low base AoE, low Pierce
+
+Sniper Rifle
+
+Identity: Pierce-friendly
+
+
+Very high base damage
+
+
+Slow fire rate
+
+
+High base Pierce
+
+
+Low AoE, low Ricochet
+
+Shotgun
+
+Identity: Projectile Count-friendly
+
+
+Fires many pellets
+
+
+Medium AoE (pellets can have micro explosion)
+
+
+Moderate Pierce / Ricochet baseline
+
+Rocket Launcher
+
+Identity: AoE-friendly
+
+
+Big explosions
+
+
+Long reload
+
+
+Low Pierce, low Ricochet baseline
+
+
+4.2 Universal Weapon Stats
+1.
+Damage
+2.
+3.
+Fire Rate
+4.
+5.
+Reload Speed
+6.
+7.
+Magazine Size
+8.
+9.
+Bullet Speed
+10.
+11.
+Projectile Count
+12.
+13.
+AoE Radius
+14.
+15.
+Projectile Pierce
+16.
+17.
+Ricochet Chance
+18.
+19.
+Knockback
+20.
+21.
+Crit Chance
+22.
+23.
+Crit Damage
+24.
+Any weapon can upgrade any of these.
+
+4.3 Weapon Rarities
+All weapons have 4 rarity tiers:
+
+Common
+
+
+Rare
+
+
+Epic
+
+
+Legendary
+
+Higher rarity = multiplicative buff to important stats.
+Suggested Rarity Multiplier Example
+(modifies the weapon’s base stats only, not the player’s upgrades)
+Rarity	Damage	Fire Rate	Magazine	Reload
+Common	1.0×	1.0×	1.0×	1.0×
+Rare	1.25×	1.10×	1.20×	0.90×
+Epic	1.50×	1.20×	1.35×	0.80×
+Legendary	1.90×	1.35×	1.50×	0.70×
+Weapon drop can be any type regardless of starting type.
+
+5. Upgrades
+5.1 Upgrade Rules
+
+On level-up choose 1 of 3 random upgrades
+
+
+Each upgrade buffs one stat only
+
+
+4 rarities: Common / Rare / Epic / Legendary
+
+
+Upgrades stack infinitely
+
+
+No caps
+
+5.2 Upgrade Stat List (final)
+1.
+Damage
+2.
+3.
+Fire Rate
+4.
+5.
+Reload Speed
+6.
+7.
+Magazine Size
+8.
+9.
+Bullet Speed
+10.
+11.
+Projectile Count
+12.
+13.
+Max HP
+14.
+15.
+HP Regen
+16.
+17.
+Damage Reduction
+18.
+19.
+Movement Speed
+20.
+21.
+Knockback
+22.
+23.
+AoE Radius
+24.
+25.
+XP Gain %
+26.
+27.
+Gold Gain %
+28.
+29.
+Pickup Radius
+30.
+31.
+Crit Chance
+32.
+33.
+Crit Damage
+34.
+35.
+Projectile Pierce
+36.
+37.
+Ricochet Chance
+38.
+5.3 Upgrade Values Per Rarity
+Stat	Common	Rare	Epic	Legendary
+Damage	+12%	+20%	+30%	+45%
+Fire Rate	+10%	+16%	+24%	+35%
+Reload Speed	-10%	-16%	-24%	-35%
+Magazine Size	+20%	+30%	+45%	+65%
+Bullet Speed	+20%	+30%	+45%	+60%
+Projectile Count	+1	+1	+2	+3
+Max HP	+25%	+40%	+60%	+90%
+HP Regen	+0.5	+1	+1.5	+2.5
+Damage Reduction	+5%	+8%	+12%	+18%
+Movement Speed	+8%	+12%	+18%	+25%
+Knockback	+15%	+25%	+40%	+60%
+AoE Radius	+15%	+25%	+40%	+60%
+XP Gain %	+10%	+18%	+27%	+40%
+Gold Gain %	+10%	+18%	+27%	+40%
+Pickup Radius	+15%	+25%	+40%	+60%
+Crit Chance	+5%	+8%	+12%	+18%
+Crit Damage	+20%	+35%	+55%	+80%
+Projectile Pierce	+1	+1	+2	+3
+Ricochet Chance	+5%	+8%	+12%	+18%
+
+6. Items & Drops
+6.1 XP
+Always drops.
+6.2 Gold
+Always drops.
+6.3 Stat Item
+
+Drop chance: 1%
+
+
+Gives a Common-tier upgrade to a random stat
+
+
+Stacks infinitely
+
+6.4 Weapon Drop
+
+Regular enemies: 0.5% chance
+
+
+Elite enemies: 10% chance
+
+
+Mini-boss: 100% chance
+
+Weapon type is completely random.
+Rarity roll:
+
+50% same rarity
+
+
+35% +1 rarity
+
+
+15% +2 rarity
+
+(Clamp to Legendary.)
+6.5 Chests
+
+Some enemies drop “Chest Tokens” (3% chance on elites)
+
+
+Chests cost gold
+
+
+Give either:
+
+o
+A Stat Item
+o
+o
+OR a random upgrade (no level-up needed)
+o
+Chest cost:
+
+50 → 75 → 112 → 168 → … (×1.5 each time)
+
+
+7. Enemies
+7.1 Enemy Types
+Goblin Grunt (Basic)
+
+HP: 100
+
+
+Speed: 2.5
+
+
+Damage on touch: 10
+
+Orc Brute (Fat, Slow)
+
+HP: 300
+
+
+Speed: 1.5
+
+
+Damage: 20
+
+Goblin Runner (Fast, Low HP)
+
+HP: 60
+
+
+Speed: 3.5
+
+
+Damage: 10
+
+Stone Golem (Mini-boss)
+
+HP: 2000
+
+
+Speed: 2.0
+
+
+Damage: 40
+
+
+Guaranteed weapon drop
+
+7.2 Animations
+
+Only animation: walk loop
+
+
+Driven by VAT shader
+
+
+Always playing
+
+
+8. Enemy Scaling (Dynamic Difficulty)
+Let time t = seconds since start
+Difficulty level:
+D = 1 + t / 60
+(+1 difficulty every minute)
+Enemy HP scaling
+ScaledHP = BaseHP × (1.12)^(D - 1)
+(+12% per minute)
+Spawn rate scaling
+SpawnRate(D) = BaseSpawnRate × (1 + 0.25 × (D - 1))
+(+25% enemies per minute)
+Base spawn rates:
+
+Goblin Grunt: 0.8/s
+
+
+Runner: 0.4/s
+
+
+Brute: 0.2/s
+
+
+Stone Golem: one every 90 seconds
+
+XP & Gold scaling
+Rewards scale slowly:
+RewardMul(D) = 1 + 0.10 × (D - 1)
+
+9. XP Curve (Level Ups)
+XP required for next level:
+XPToNext(L) = 50 + 25 × L
+(Level 1→2 = 75 XP, Level 5→6 = 175 XP, Level 20→21 = 550 XP)
+
+10. HUD / UI
+During Gameplay
+
+HP bar
+
+
+XP bar
+
+
+Gold counter
+
+
+Level
+
+
+Timer
+
+
+Weapon icon + rarity
+
+
+Ammo (in magazine)
+
+
+List of taken upgrades (vertical list of icons or text)
+
+Level Up Screen
+
+Shows 3 upgrades
+
+
+Shows rarity colors
+
+
+Pauses game
+
+Death Screen
+
+Time survived
+
+
+Kills
+
+
+Gold collected
+
+
+List of upgrades taken
+
+
+Buttons: Replay / Main Menu
+
+Main Menu
+
+Play button
+
+Weapon Select
+
+4 cards (AR, sniper, shotgun, launcher)
+
+
+All are Common at start
+
+
+11. Technical Notes
+
+Engine: Unity Web, no post-processing
+
+
+Shaders: Mostly Unlit
+
+
+VAT for enemy walk
+
+
+Keep build under 25–30 MB
+
+
+Keep code WebGL-friendly
+

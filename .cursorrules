@@ -1,0 +1,75 @@
+# Project: Fantasy Arena Horde FPS (Unity Web / Yandex)
+
+## High-level context
+- This is a **first-person horde survival shooter** built in **Unity** targeting the **Web (WebGL / Yandex Games)** platform.
+- Visuals: bright, stylized fantasy (goblins, orcs, stone golems). Performance and clarity are more important than graphics.
+- Core loop: player picks one of 4 guns, survives endlessly spawning enemies, gains XP + gold, levels up, chooses stat upgrades, finds higher-rarity weapons, eventually dies.
+
+Do NOT restate the whole game design here. Assume detailed GDD exists elsewhere; only follow or modify design when explicitly asked in a prompt.
+
+---
+
+## Tech & engine rules
+- Use **C# MonoBehaviours** under `Assets/Scripts/...`.
+- **No Namespaces**: Do not wrap classes in custom namespaces.
+- **Input**: Use the **old Unity Input system** (`Input.GetAxis`, `Input.GetKey`, `Input.GetMouseButton`).
+- **UI**: Use **TextMeshPro** (`using TMPro;`, `TextMeshProUGUI`) for all text. Do NOT use the legacy `UnityEngine.UI.Text`.
+- **Math**: Always use `UnityEngine.Random` for RNG (never `System.Random`).
+- **Target platform**: Web (WebGL).
+  - Avoid heavy allocations in `Update()`.
+  - **Mandatory Object Pooling**: Use `Queue<GameObject>` or `List<GameObject>` for Projectiles and Enemies. Never `Instantiate` or `Destroy` rapidly in the main loop.
+  - Avoid reflection, threads, and system IO.
+- Prefer **unlit or very simple shaders** and minimal per-frame logic.
+
+---
+
+## Architecture & main scripts
+
+Unless the user explicitly changes it, assume the core architecture is:
+
+### Core gameplay
+- `GameManager`: Controls game state (Menu -> WeaponSelect -> Playing -> LevelUp -> Dead). Starts/stops spawners, resets run.
+- `PlayerController`: Handles WASD movement + mouse look. Calls `Weapon.Shoot()`.
+- `PlayerHealth`: Tracks HP, damage reduction, regen. Applies touch damage cooldowns.
+- `Weapon`: Holds stats (dmg, fire rate, etc.). Implements shooting (Raycast or Projectile). Applies upgrades/rarity.
+- `Enemy`: Base stats (HP, speed). Moves toward player via `Vector3.MoveTowards` (avoid NavMesh if possible for performance, or use lightweight NavMesh). Handles death/drops.
+- `EnemySpawner`: Spawns enemies based on time difficulty. manages the **Enemy Object Pool**.
+
+### Progression systems
+- `XPSystem`: Tracks XP/Level. Triggers `UpgradeSystem`.
+- `UpgradeDefinition` (ScriptableObject): One stat per upgrade. Stores stat type, base value, rarity scaling.
+- `UpgradeSystem`: Holds upgrade pool. Rolls 3 choices. Modifies stats multiplicatively.
+- `StatItem`: Pickup that applies a Common-tier bonus immediately.
+
+### Currency & items
+- `PickupXP` / `PickupGold`: Simple trigger logic.
+- `Chest`: Spawns via drops. Spends gold to give Stat Item or Upgrade.
+
+### UI
+- `UIManager`: Handles HUD (HP, XP, Gold, Timer, Ammo). Manages screens (Menu, Death, LevelUp).
+- Exposes methods: `SetHP(float current, float max)`, `UpdateXP(float current, float max)`, `ShowUpgradeChoices(List<UpgradeDefinition> choices)`.
+
+---
+
+## Coding style & constraints
+- **Complete Code**: Always produce complete, compilable C# code. Do NOT leave placeholders like `// ... existing code ...` unless the file is massive (>300 lines) and you are only changing one specific method.
+- **Formatting**:
+  - `PascalCase` for classes and public properties.
+  - `camelCase` for fields and locals.
+  - Serialized fields: `[SerializeField] private float moveSpeed;` (Keep fields private).
+- **Safety**: Check for nulls (`if (component != null)`) before accessing references in dynamic environments.
+
+---
+
+## WebGL & performance notes
+- Assume 100+ enemies active.
+- **Caching**: Store references in `Awake`. Never use `GetComponent`, `FindObjectOfType`, or string comparisons in `Update`.
+- **Coroutines**: Use Coroutines for timers/delays instead of `Update` timers where possible.
+- **Responsiveness**: Favor instant feedback and simple logic over complex physics interactions.
+
+---
+
+## How to respond to prompts
+- Prefer **editing existing scripts** regarding the architecture above.
+- If the user asks for a new feature, fit it into `GameManager` or an existing Manager unless it clearly requires a new system.
+- Ensure public APIs align (e.g., `GameManager` calls `EnemySpawner.StartSpawning()`).
